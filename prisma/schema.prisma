@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator seed {
+  provider = "tsx"
+  output   = "prisma/seed.ts"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")          // pooled (6543)
+  directUrl = env("DATABASE_DIRECT_URL")   // direct (5432)
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String?
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  classes   ClassMember[]
+  tasks     TaskAssignment[]
+  materials Material[]
+  taughtClasses Class[]
+}
+
+model Class {
+  id       String @id @default(cuid())
+  name     String
+  grade    GradeLevel
+  teacherId String
+  teacher  User   @relation(fields: [teacherId], references: [id])
+  members  ClassMember[]
+  tasks    Task[]
+}
+
+model ClassMember {
+  id      String @id @default(cuid())
+  classId String
+  userId  String
+  class   Class  @relation(fields: [classId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@unique([classId, userId])
+}
+
+model Material {
+  id        String       @id @default(cuid())
+  title     String
+  type      MaterialType
+  fileUrl   String
+  fileKey   String?
+  wordCount Int?
+  meta      Json?
+  ownerId   String
+  owner     User         @relation(fields: [ownerId], references: [id])
+  createdAt DateTime     @default(now())
+  tasks     Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  classId     String
+  class       Class     @relation(fields: [classId], references: [id])
+  materialId  String?
+  material    Material? @relation(fields: [materialId], references: [id])
+  kind        TaskKind
+  title       String
+  description String?
+  dueAt       DateTime?
+  grade       GradeLevel
+  etcMinutes  Int
+  breakdown   Json?
+  createdAt   DateTime  @default(now())
+  assignments TaskAssignment[]
+}
+
+model TaskAssignment {
+  id          String     @id @default(cuid())
+  taskId      String
+  studentId   String
+  task        Task       @relation(fields: [taskId], references: [id])
+  student     User       @relation(fields: [studentId], references: [id])
+  status      TaskStatus @default(NOT_STARTED)
+  progress    Int        @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@unique([taskId, studentId])
+}
+
+enum Role {
+  TEACHER
+  STUDENT
+}
+
+enum GradeLevel {
+  K
+  G1
+  G2
+  G3
+  G4
+  G5
+  G6
+  G7
+  G8
+  G9
+  G10
+  G11
+  G12
+}
+
+enum TaskKind {
+  READING
+  HOMEWORK
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum MaterialType {
+  PDF_READING
+  PDF_HOMEWORK
+}
